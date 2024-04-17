@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+<meta name="description" content="How to pay loan efficiently" />
+<meta name="author" content="@windygallery" />
+<title>Loan Calculation</title>
+<link rel="icon" type="image/x-icon" href="assets/img/favicon.ico" />
+<!-- Google fonts-->
+<!-- <link href="https://fonts.googleapis.com/css?family=Saira+Extra+Condensed:500,700" rel="stylesheet" type="text/css" />
+<link href="https://fonts.googleapis.com/css?family=Muli:400,400i,800,800i" rel="stylesheet" type="text/css" /> -->
+
+<style>
+body, html {
+    font-family: Arial, sans-serif;
+    font-size: 16px;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+.small {
+    font-size: 12px;
+    color: #ffffaa;
+}
+a {
+    font-size: 12px;
+    color: #7d93ff;
+}
+.container {
+    display: flex;
+    width: 100%;
+}
+.container img {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: 5px;
+}
+.container input,select,textarea {
+    width: 100%;
+    padding: 10px 0px 10px 10px;
+    margin: 2px;
+    font-size: 16px;
+    border-radius: 2px;
+}
+.sidebar {
+    flex: 1; /* Represents a proportion of the space inside the flex container */
+    /* background-color: #f4f4f4; Just for better visibility */
+    color: #ffffff;
+    background-color: rgb(8, 17, 89);
+    /* gap: 10px; */
+    padding: 14px;
+    /* border-radius: 10px; */
+    padding: 30px 20px 0px 20px;
+}
+.main-content {
+    flex: 4; /* Takes up the rest of the space */
+    background-color: #FFFFFF; /* Just for better visibility */
+    padding: 30px 20px 0px 20px;
+}
+
+.square-button {
+    width: 100%;
+    display: inline-block;
+    padding: 10px 20px;
+    text-align: center;
+    font-size: 16px;
+    font-weight: bold;
+    text-decoration: none;
+    color: #ffffff;
+    background-color: #0a4d9f;
+    border: 2px solid #0a4d9f;
+    border-radius: 5px;
+    transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+}
+
+.square-button:hover {
+    background-color: #266af2;
+    border-color: #266af2;
+}
+
+/* Table Base Styles */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    font-family: Arial, sans-serif;
+}
+
+th, td {
+    padding: 10px;
+    border: 1px solid #ddd; /* Light grey border */
+    text-align: right;
+}
+
+th {
+    background-color: #060644; /* Light grey background */
+    color: #ffffff; /* Dark text color for contrast */
+}
+
+/* Striped Rows */
+tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+/* Hover Effect for Rows */
+tr:hover {
+    background-color: #9bff84;
+}
+
+/* Table Header Styling */
+thead tr {
+    background-color: #39ff96; /* Green background for header */
+    color: #ffffff; /* White text color */
+}
+.yearrow td {
+    background-color: #5db9ff;
+    text-align: right;
+}
+
+#summary {
+    text-align: left;
+}
+
+/* Animation */
+.fade-in {
+  opacity: 0;
+  animation: fadeInAnimation 1.4s ease-in-out forwards; /* Adjust duration and timing function as needed */
+}
+@keyframes fadeInAnimation {
+  from { opacity: 0; } to { opacity: 1; }
+}
+
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="sidebar">
+คำนวณเงินค่าผ่อนบ้าน/คอนโด <br>
+<script>
+    function calculateLoan() {
+        let loan                = parseFloat(document.getElementById("loan").value);
+        let payment             = parseFloat(document.getElementById("payment").value);
+        let specialpayment      = document.getElementById("extrapayment").value;
+        let interest            = document.getElementById("interest").value;
+        let startmonth          = parseInt(document.getElementById("startmonth").value);
+        let interest_values     = [];
+        let advancedpay         = [];
+        let suminterest         = 0;
+        let sumloan             = 0;
+        let selectedFormation   = "";
+        // alert(loan+" , "+payment+" , "+specialpayment+" , "+interest+" , "+startmonth+"!");
+
+        // prepare special payments
+        let arr_adv_payments    = specialpayment.split(',');
+        // console.log("special payments:");
+        arr_adv_payments.forEach(function(each_payment) {
+            // console.log(each_payment);
+            let xcase = each_payment.split('=');
+            if (xcase.length == 2) {
+                let step    = parseInt(xcase[0]);
+                let spay    = parseFloat(xcase[1]);
+                advancedpay[step] = spay;
+            }
+        });
+        // console.log("interest:" + advancedpay);
+
+        // setup interest for each periods
+        let arr_interests       = interest.split(',');
+        arr_interests.forEach(function(each_interest) {
+            // console.log(each_interest);
+            let xcase = each_interest.split('=');
+            if (xcase.length == 2) {
+                let step    = parseInt(xcase[0]);
+                let ratio   = parseFloat(xcase[1]);
+                interest_values[step] = ratio;
+            }
+            else {  // user input only one number (without 1=XX)
+                let step    = 1;
+                let ratio   = parseFloat(each_interest);
+                interest_values[step] = ratio;
+            }
+        });
+        // console.log("interest values:" + interest_values);
+
+        let possibleEnd     = true;
+        let step            = 0
+        let newloan         = loan;
+        let payment_table   = "<table><thead><tr bgcolor='#cceeff'><th>เดือน</th><th>เงินต้น (บาท)</th><th>วัน</th><th>ดอกเบี้ย</th><th>จ่าย (บาท)</th><th>ตัดดอกเบี้ย (บาท)</th><th>ตัดเงินต้น (บาท)</th><th>เงินต้นคงเหลือ (บาท)</th></tr></thead><tbody>\n";
+        while (possibleEnd && newloan > 0) {
+                step        = step + 1
+            let manydays    = dayinthismonth(step + startmonth);
+            let anInterest  = selectInterest(step, interest_values);
+            let debt        = ((newloan * anInterest * manydays)/36500);
+
+            suminterest     = suminterest + debt;
+
+            this_payment    = payment
+            if (advancedpay[step] != null) {
+                this_payment = advancedpay[step]
+            }
+
+            let rest    = newloan - (this_payment - debt)
+            if (rest < 0) { rest = 0; this_payment = newloan; }
+
+            let bgcolor = "";
+            if (step%12 == 0) { bgcolor = "class=\"yearrow\"";}
+
+            //console.log(step+" : "+manydays+" : "+num(newloan)+" pay:"+num(this_payment)+" , left:"+num(rest));
+            payment_table += "<tr "+bgcolor+"><td>"+step+"</td><td>"+num(newloan)+"</td><td>"+manydays+"</td><td>"+anInterest+" % = "+num(debt)+"</td><td>"+num(this_payment)+"</td>";
+            payment_table += "<td>"+num(debt)+"</td><td>"+num(this_payment - debt)+"</td><td>"+num(rest)+"</td></tr>\n";
+            
+            if (newloan < rest) {
+                possibleEnd = false;
+            }
+            newloan     = rest
+        }
+        payment_table += "</tbody></table>\n\n";
+
+        if (possibleEnd) {
+            let table = document.getElementById("payment_table");
+            table.innerHTML = payment_table;
+            table.classList.add('fade-in');
+            summarize(step, loan, suminterest);
+        }
+        else {
+            failPayment(payment);
+            document.getElementById("payment_table").innerHTML = "";
+            table.classList.add('fade-in');
+        }
+    }
+
+    function dayinthismonth(step) {
+        // console.log(" --- dayinthismonth("+step+") ---");
+        let daysinmonth    = [31,28,31,30,31,30,31,31,30,31,30,31];
+        let month = (step%12)-1;
+        if (month < 0) { month = 11; }
+        return daysinmonth[month];
+    }
+
+    function selectInterest(step, interest_values) { 
+        let ratio   = 0;
+        let i       = 1;
+        while (i <= step) {
+            if (!isNaN(interest_values[i])) {
+                ratio = interest_values[i]
+                //console.log(i+" : "+ratio);
+            }
+            i = i + 1
+        }
+        return ratio;
+    }
+
+    function num(number) {
+        let roundedNumber   = number.toFixed(2); // Rounds to 2 decimal places
+        let formattedNumber = parseFloat(roundedNumber).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        return formattedNumber;
+        // return number.toLocaleString('en-US', { style: 'currency',currency: 'THB' });
+    }
+
+    function updateLoanRate() {
+        // alert("updateLoanRate()");
+        selected = document.getElementById('interest_formula').value
+        document.getElementById("interest").value = selected
+    }
+
+    function summarize(step, loan, suminterest) {
+        let greeting = `You will pay ${num(loan+suminterest)} baht in ${step} months<br>with interest ${num(suminterest)} baht from<br>starting loan ${num(loan)} baht.`;
+        console.log(greeting); 
+        document.getElementById("summary").innerHTML = greeting;
+        document.getElementById("summary").classList.add('fade-in');
+    }
+
+    function failPayment(payment) {
+        let greeting = `Sorry, You cannot close this loan with this strategy (${num(payment)} baht/month).`;
+        console.log(greeting); 
+        document.getElementById("summary").innerHTML = greeting;
+        document.getElementById("summary").classList.add('fade-in');
+    }
+
+// $formation = array(
+//   "ยืมบิดา" => "1=7",
+//   "บัวหลวง1-3M" => "1=2.99,7=5.125,13=5.125,37=5.875",
+//   "บัวหลวง3-5M" => "1=2.75,7=5.125,13=5.125,37=5.75",
+//   "บัวหลวง5M+" => "1=2.50,7=5.125,13=5.125,37=5.625",
+//   "กรุงไทย" => "1=3.25,13=6.025",
+//   "กรุงศรี1-5M#1" => "1=3.85,13=4.95,25=6.1",
+//   "กรุงศรี1-5M#2" => "1=1.50,7=5.60,13=5.85,25=6.1",
+//   "กรุงศรี5M+#1" => "1=3.7,13=4.45,25=5.85",
+//   "กรุงศรี5M+#2" => "1=1.25,7=5.25,25=5.45,25=5.85",
+//   "กสิกร" => "1=5.15,37=6.12",
+//   "เกียรตินาคินFix1ปี" => "1=4.20,37=5.65",
+//   "เกียรตินาคินFix3ปี" => "1=3.50,13=5.4,37=5.65",
+//   "ธอส" => "1=3.30,13=3.3,37=6.25",
+//   "ออมสิน#1" => "1=3.00,13=6.00,25=6.25,37=6.50",
+//   "ออมสิน#2" => "1=5.50,37=6.50",
+//   "TISCO" => "1=4.50, 13=5.375",
+//   "CIMB30K+" => "1=0,7=4.716,13=4.725,37=5.875",
+//   "CIMB50K+" => "1=3.49,37=5.875",
+//   "TMB" => "1=3.99,37=5.25",
+//   "ธนชาตFix1ปี" => "1=2.99,13=5.855,37=6.00",
+//   "ธนชาตFix2ปีี" => "1=4.25,25=5.75,37=6.00",
+//   "ธนชาตFix3ปีี" => "1=3.75,13=4.75,25=5.75,37=6.00",
+//   "ธนชาต" => "1=4.65,37=6.00"
+// ); 
+</script>
+<form id="top" action="" method="post">
+    <input name="loan"          id="loan"           type="text" value="1500000" placeholder="เงินต้น (บาท)"><br>
+    <input name="payment"       id="payment"        type="text" value="9000" placeholder="จ่ายเดือนละ (บาท)"><br>
+    <input name="extrapayment"  id="extrapayment"   type="text" value="1=20000,6=15000" placeholder="จ่ายพิเศษ (เดือน=บาท)"><br>
+    <div class="small">(*) 1=30000 หมายถึง การชำระเงิน 30,000 บาทในเดือนที่ 1</div><br>
+    
+    รูปแบบดอกเบี้ย <select id="interest_formula" name="interest_formula" onchange="updateLoanRate()"></select><br>
+<script>
+    // Options could be fetched from an API or generated based on other logic
+    const options = [
+      { value: '1=7', text: 'ยืมมารดา' },
+      { value: '1=1.99,13=3.15,37=6.4', text: 'ธอส สินเชื่อบ้าน Big Family ปี 2567' },
+      { value: '1=3.5,13=4.3,37=6.4', text: 'ธอส สินเชื่อบ้าน 2 HOME ปี 2567' },
+      { value: '1=2.6,13=3.65,37=6.4', text: 'ธอส สินเชื่อบ้านอยู่เย็น เป็นสุข ปี 2567' },
+      { value: '1=4.9,25=5.9,37=6.4', text: 'ธอส. สุขสบาย ปี 2567' },
+      { value: '1=1.99,13=3.25,25=3.5,37=6.4', text: 'ธอส	สินเชื่อบ้านเบอร์ 5 ปี 2567' }
+    //   { value: '1=2.50,7=5.125,13=5.125,37=5.625', text: 'บัวหลวง5M+' },
+    //   { value: '1=3.25,13=6.025', text: 'กรุงไทย' },
+    //   { value: '1=3.85,13=4.95,25=6.1', text: 'กรุงศรี1-5M#1' },
+    //   { value: '1=1.50,7=5.60,13=5.85,25=6.1', text: 'กรุงศรี1-5M#2' },
+    //   { value: '1=3.7,13=4.45,25=5.85', text: 'กรุงศรี5M+#1' },
+    //   { value: '1=1.25,7=5.25,25=5.45,25=5.85', text: 'กรุงศรี5M+#2' },
+    //   { value: '1=0,7=4.716,13=4.725,37=5.875', text: 'CIMB30K+' },
+    //   { value: '1=3.49,37=5.875', text: 'CIMB50K+' },
+    //   { value: '1=4.65,37=6.00', text: 'ธนชาต' }
+    ];
+
+// ธอส	สินเชื่อบ้าน Big Family ปี 2567	1=1.99,13=3.15,37=MRR-0.50	https://www.ghbank.co.th/product-detail/big-family-2567	6.9
+// ธอส	สินเชื่อบ้าน 2 HOME ปี 2567	1=3.5,13=4.3,37=MRR-0.5	https://www.ghbank.co.th/product-detail/2home-2567-q2	6.9
+// ธอส	สินเชื่อบ้านอยู่เย็น เป็นสุข ปี 2567	1=2.6,13=3.65,37=MRR-0.5	https://www.ghbank.co.th/product-detail/baanyuyen-pensook-2567-q2	6.9
+// ธอส	โครงการบ้าน ธอส. สุขสบาย ปี 2567	1=MRR-2,25=MRR-1,37=MRR-0.5	https://www.ghbank.co.th/product-detail/sooksabaai-2567	6.9
+// ธอส	สินเชื่อบ้านเบอร์ 5 ปี 2567	1=1.99,13=3.25,25=3.5,37=MRR-0.5	https://www.ghbank.co.th/product-detail/baanber5-2567	6.9
+
+    function populateSelect(options) {
+      const select = document.getElementById('interest_formula');
+      
+      // Clear existing options first
+      select.innerHTML = '';
+      
+      // Dynamically create and append each option
+      options.forEach(option => {
+        const opt = document.createElement('option');
+        opt.value = option.value;
+        opt.textContent = option.text;
+        select.appendChild(opt);
+      });
+    }
+    
+    // Populate the select element with options
+    populateSelect(options);
+</script>
+
+  <br>
+   <textarea name="interest"       id="interest"       type="text" value="" placeholder="อัตราดอกเบี้ย (เดือน=%)">1=2.5,12=5,36=6</textarea><br>
+  <div class="small">(*) ตัวอย่างเช่น 1=5.6, 25=6.85 จะหมายถึงตั้งแต่เดือนที่ 1 เป็นต้นไปดอกเบี้ย 5.6%, ตั้งแต่เดือนที่ 25 เป็นต้นไปดอกเบี้ย 6.85%
+  ตัวเลขดอกเบี้ยที่ใช้คำนวณเป็นอัตราดอกเบี้ยที่แท้จริง ไม่ใช่ค่า MRR, MLR</div>
+  <!--button onclick="return myFunction()"> โหลด </button--><br>
+
+  เดือนเริ่มต้น <select name="startmonth" id="startmonth">
+  <option value="0" >มกราคม</option>
+  <option value="1" >กุมภาพันธ์</option>
+  <option value="2" >มีนาคม</option>
+  <option value="3" >เมษายน</option>
+  <option value="4" >พฤษภาคม</option>
+  <option value="5" >มิถุนายน</option>
+  <option value="6" >กรกฎาคม</option>
+  <option value="7" >สิงหาคม</option>
+  <option value="8" >กันยายน</option>
+  <option value="9" >ตุลาคม</option>
+  <option value="10" >พฤศจิกายน</option>
+  <option value="11" >ธันวาคม</option>
+</select><br>
+</form>
+    <p><button class="square-button" onclick="calculateLoan()">คำนวณ​</button></p>
+    <center><div class="small">version 2.1 by <a href="http://www.windygallery.com">@windygallery</a></div>
+    </center>
+<br><br>
+
+    <!-- <p><button class="square-button">Meeting</button></p> -->
+    </div>
+    <div class="main-content">
+        <div id="result">
+            <table border="0" bordercolor="#ffffff" width="95%">
+            <tr>
+                <td width="80"><img src="./assets/img/house.png" height="70"/></td>
+                <td><h2><div id="summary"></div></h2></td>
+            </tr>
+            </table>
+            <div id="payment_table"></div>
+        </div>
+        <br><hr>
+        <center>
+            <a href="https://www.bot.or.th/th/statistics/interest-rate.html" target="_blank">อัตราดอกเบี้ยเงินให้สินเชื่อของธนาคาร</a> | 
+            <a href="https://docs.google.com/spreadsheets/d/1skptQTVCLvFU84ko_7ffYeJqzfP98u0tjXf5vn49GMw/edit?usp=sharing" target="_blank">อัตราดอกเบี้ยสินเชื่อธนาคารที่รวบรวมไว้ ณ เมษา 67</a>
+        </center>
+        <br><br>
+    </div>
+</div>
+</html>
